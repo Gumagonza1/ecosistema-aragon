@@ -1,0 +1,14 @@
+# Each subfolder is its own independent git repository
+tacos-aragon-api/
+tacos-aragon-app/
+tacos-aragon-bot/
+tacos-aragon-fiscal/
+tacos-aragon-llamadas/
+tacos-aragon-web/
+tacos-aragon-wp/
+
+# Common
+.env
+*.log
+node_modules/
+__pycache__/
