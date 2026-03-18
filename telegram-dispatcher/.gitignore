@@ -1,0 +1,13 @@
+node_modules/
+
+# Secrets — never commit
+.env
+ecosystem.config.js
+
+# Logs
+*.log
+
+# Runtime
+*.db
+*.db-shm
+*.db-wal

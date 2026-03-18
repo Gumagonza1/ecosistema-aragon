@@ -1,6 +1,7 @@
 # Each subfolder is its own independent git repository
 tacos-aragon-api/
 tacos-aragon-app/
+tacos-aragon-orchestrator/
 tacos-aragon-bot/
 tacos-aragon-fiscal/
 tacos-aragon-llamadas/
