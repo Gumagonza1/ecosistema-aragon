@@ -1,137 +1,203 @@
-# Aragón Ecosystem
+# 🌮 Ecosistema Aragón
 
-Complete automation and digital operations platform for **Tacos Aragón**, a restaurant in Culiacán, Sinaloa, Mexico.
-
-## Projects
-
-| Project | Description | Technologies |
-|---------|-------------|--------------|
-| [tacos-aragon-bot](./tacos-aragon-bot/) | WhatsApp ordering bot with natural language understanding | Node.js · whatsapp-web.js · NLP · Loyverse |
-| [tacos-aragon-llamadas](./tacos-aragon-llamadas/) | Automated phone ordering bot | Node.js · Twilio · Google STT/TTS |
-| [tacos-aragon-api](./tacos-aragon-api/) | Central REST API + intelligent agent for the mobile app | Node.js · Express · Loyverse · Facturama |
-| [tacos-aragon-app](./tacos-aragon-app/) | Internal mobile app for the restaurant team | React Native · Expo |
-| [tacos-aragon-web](./tacos-aragon-web/) | Restaurant website + electronic invoicing | Python · Flask · CFDI 4.0 · Facturama |
-| [tacos-aragon-wp](./tacos-aragon-wp/) | WordPress plugin for invoicing and web presence | PHP · WordPress · Facturama · Loyverse |
-| [tacos-aragon-fiscal](./tacos-aragon-fiscal/) | Automated SAT CFDI bulk download and fiscal analysis | Python · cfdiclient · Excel |
-| [tacos-aragon-orchestrator](./tacos-aragon-orchestrator/) | Operations orchestrator — health monitoring, autonomous recovery, approval queue | Node.js · PM2 · SQLite |
-| [telegram-dispatcher](./telegram-dispatcher/) | Admin notification channel — routes ops messages to Telegram with inline approval buttons | Node.js · Telegram Bot API · SQLite |
+Plataforma de automatización y operación digital completa para **Tacos Aragón**, restaurante en Culiacán, Sinaloa, México. El ecosistema orquesta pedidos por WhatsApp, facturación electrónica SAT, análisis fiscal, monitoreo de calidad y gestión de código — todo coordinado desde Telegram.
 
 ---
 
-## General Architecture
+## 📦 Proyectos del monorrepo
 
-```
-Customer
-  │
-  ├── WhatsApp ──────────► tacos-aragon-bot
-  │                         (Natural language + Loyverse POS)
-  │
-  ├── Phone call ─────────► tacos-aragon-llamadas
-  │                         (Twilio + STT/TTS + Loyverse)
-  │
-  ├── Website ────────────► tacos-aragon-wp  (WordPress)
-  │                         tacos-aragon-web (Flask / invoicing)
-  │
-  ├── Mobile app ─────────► tacos-aragon-app
-  │                         (via tacos-aragon-api)
-  │
-  └── Fiscal download ────► tacos-aragon-fiscal
-                             (SAT · CFDI · Excel)
-
-Admin (operations)
-  │
-  ├── Monitor agent ──────┐
-  ├── Orchestrator ───────┼──► mensajes_queue (SQLite)
-  └── CFO agent ──────────┘         │
-                                     ▼
-                             telegram-dispatcher ──► Telegram (admin)
-                             (approve/reject via inline buttons)
-```
-
-## Common Integrations
-
-- **Loyverse POS** — Automatic order registration at point of sale
-- **NLP processing** — Natural language understanding for orders and voice transcription
-- **Intelligent agent** — Tool-use agent for the mobile app and quality monitoring
-- **Facturama PAC** — Electronic invoice stamping (CFDI 4.0)
-- **SAT (Mexico)** — Bulk download of issued and received CFDIs
-- **Telegram Bot API** — Admin operations channel (independent of customer-facing WhatsApp)
-
-## Configuration
-
-Each project has its own `ecosystem.config.example.js` or `.env.example` with the required variables.
-See the `README.md` inside each folder for installation instructions.
-
-> **Security:** No `.env` file, certificate, token, or personal data is included in this repository.
+| Proyecto | Tecnología | Puerto | Proceso PM2 | Descripción |
+|---|---|---|---|---|
+| [tacos-aragon-bot](./tacos-aragon-bot/) | Node.js · whatsapp-web.js · Gemini AI | 3003 | `TacosAragon` | Bot WhatsApp de pedidos con IA, menú dinámico, Loyverse POS |
+| [tacos-aragon-api](./tacos-aragon-api/) | Node.js · Express · SQLite | 3001 | `tacos-api` | API REST central: ventas, contabilidad, facturación, agente de negocio |
+| [tacos-aragon-fiscal](./tacos-aragon-fiscal/) | Python · cfdiclient | — | `cfo-agent` | Descarga masiva CFDI SAT, análisis fiscal con Gemini, reportes Excel |
+| [tacos-aragon-orchestrator](./tacos-aragon-orchestrator/) | Node.js · Docker · SQLite | — | `orquestador` | Watchdog central: monitoreo de salud, recuperación autónoma, cola de aprobaciones |
+| [telegram-dispatcher](./telegram-dispatcher/) | Node.js · Telegram Bot API · SQLite | — | `telegram-dispatcher` | Canal de notificaciones admin: enruta mensajes, botones inline, comandos |
+| [pmo-agent](./pmo-agent/) | Node.js · Claude Code CLI | — | `pmo-agent` | Agente PMO: ejecuta instrucciones de código y autocorrecciones vía Claude |
+| [mcp-project-server](./mcp-project-server/) | Python · MCP SDK | stdio | — | 26 herramientas MCP para que Claude gestione código, PM2 y git por proyecto |
+| [monitor-bot](../bot-tacos/) | Node.js · Claude Sonnet | — | `MonitorBot` | Agente monitor: analiza conversaciones WhatsApp, detecta errores, propone mejoras |
+| [tacos-aragon-web](./tacos-aragon-web/) | Python · Flask · CFDI 4.0 | — | — | Sitio web del restaurante + facturación electrónica |
+| [tacos-aragon-app](./tacos-aragon-app/) | React Native · Expo | — | — | App móvil interna para el equipo |
+| [tacos-aragon-wp](./tacos-aragon-wp/) | PHP · WordPress | — | — | Plugin WordPress para facturación y presencia web |
 
 ---
 
-# Ecosistema Aragón
+## 🏗️ Arquitectura
 
-Sistema completo de automatización y operación digital para **Tacos Aragón**, restaurante ubicado en Culiacán, Sinaloa, México.
+```
+╔══════════════════════════════════════════════════════════════════════╗
+║                     FLUJO CLIENTE                                    ║
+╚══════════════════════════════════════════════════════════════════════╝
 
-## Proyectos
+  Cliente
+    │
+    ├── WhatsApp ──────────────► TacosAragon (bot-tacos)
+    │                             ├── Gemini AI (NLP pedidos)
+    │                             ├── Loyverse POS (registro ventas)
+    │                             └── Puerto 3003
+    │
+    ├── App móvil ─────────────► tacos-api (port 3001, solo Tailscale)
+    │                             ├── Ventas / contabilidad
+    │                             ├── Facturación CFDI 4.0
+    │                             └── Agente inteligente con tool-use
+    │
+    ├── Sitio web ─────────────► tacos-aragon-web (Flask)
+    │                             └── tacos-aragon-wp (WordPress)
+    │
+    └── Descarga fiscal ────────► cfo-agent (Python)
+                                   ├── FIEL + efirma SAT
+                                   ├── Descarga masiva CFDIs
+                                   └── Análisis Gemini + Excel
 
-| Proyecto | Descripción | Tecnologías |
-|----------|-------------|-------------|
-| [tacos-aragon-bot](./tacos-aragon-bot/) | Bot de WhatsApp para pedidos en lenguaje natural | Node.js · whatsapp-web.js · NLP · Loyverse |
-| [tacos-aragon-llamadas](./tacos-aragon-llamadas/) | Bot de llamadas telefónicas para pedidos por voz | Node.js · Twilio · Google STT/TTS |
-| [tacos-aragon-api](./tacos-aragon-api/) | API REST central + agente inteligente para la app móvil | Node.js · Express · Loyverse · Facturama |
-| [tacos-aragon-app](./tacos-aragon-app/) | App móvil interna para el equipo del restaurante | React Native · Expo |
-| [tacos-aragon-web](./tacos-aragon-web/) | Sitio web del restaurante + facturación electrónica | Python · Flask · CFDI 4.0 · Facturama |
-| [tacos-aragon-wp](./tacos-aragon-wp/) | Plugin WordPress para facturación y presencia web | PHP · WordPress · Facturama · Loyverse |
-| [tacos-aragon-fiscal](./tacos-aragon-fiscal/) | Descarga masiva de CFDIs del SAT y análisis fiscal | Python · cfdiclient · Excel |
-| [tacos-aragon-orchestrator](./tacos-aragon-orchestrator/) | Orquestador de operaciones — monitoreo de salud, recuperación autónoma, cola de aprobaciones | Node.js · PM2 · SQLite |
-| [telegram-dispatcher](./telegram-dispatcher/) | Canal de notificaciones al admin — enruta mensajes operativos a Telegram con botones de aprobación | Node.js · Telegram Bot API · SQLite |
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                     FLUJO ADMIN (operaciones)                        ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+  Admin (Telegram privado)
+    │
+    ├── !pmo <proyecto>: <instrucción> ──────────────────────────────┐
+    │                                                                  │
+    └── /pmo_cancelar ────────────────┐                               │
+                                      │                               │
+                                      ▼                               ▼
+                             telegram-dispatcher ◄──── pmo-agent
+                             (cola SQLite: mensajes_queue)    │
+                                      │                        │
+                                      │                        ├── claude -p --mcp ...
+                                      │                        │    (Claude Code CLI, plan Max)
+                                      │                        │
+                                      │                        ├── mcp-project-server
+                                      │                        │    (26 tools: read/edit/git/pm2)
+                                      │                        │
+                                      │                        └── Changelogs JSONL
+                                      │                             C:/SesionBot/changelogs/
+                                      │
+                             ┌────────┴──────────────────┐
+                             │   Agentes que reportan     │
+                             │   vía mensajes_queue       │
+                             │                            │
+                             ├── orquestador (watchdog)   │
+                             ├── monitor-bot (calidad)    │
+                             └── cfo-agent (fiscal)       │
+                             └────────────────────────────┘
+                                      │
+                                      ▼
+                             Telegram admin chat
+                             (solo ORIGENES_PRIVADO: pmo, monitor)
+                             + Mirror grupo con topics por proyecto
+```
 
 ---
 
-## Arquitectura general
+## ⚡ Setup rápido
 
+### Requisitos del sistema
+
+| Componente | Versión mínima |
+|---|---|
+| Node.js | 18.x LTS |
+| Python | 3.10+ |
+| PM2 | 5.x (`npm i -g pm2`) |
+| Claude Code CLI | Latest (`npm i -g @anthropic-ai/claude-code`) |
+| better-sqlite3 | 9.x (instalado por npm en cada proyecto) |
+| mcp Python SDK | 1.0.0+ (`pip install mcp`) |
+
+### Instalación
+
+```bash
+# 1. Clonar
+git clone https://github.com/tu-org/ecosistema-aragon
+cd ecosistema-aragon
+
+# 2. Instalar dependencias de cada proyecto Node
+cd pmo-agent && npm install && cd ..
+cd telegram-dispatcher && npm install && cd ..
+
+# 3. Instalar dependencias Python (MCP server)
+cd mcp-project-server
+pip install -r requirements.txt
+cd ..
+
+# 4. Configurar variables de entorno
+cp telegram-dispatcher/.env.example telegram-dispatcher/.env
+# Editar con TELEGRAM_BOT_TOKEN, TELEGRAM_ADMIN_CHAT_ID, etc.
+
+# 5. Arrancar procesos con PM2
+pm2 start telegram-dispatcher/ecosystem.config.js
+pm2 start pmo-agent/ecosystem.config.js
+
+# 6. Verificar
+pm2 list
 ```
-Cliente
-  │
-  ├── WhatsApp ──────────► tacos-aragon-bot
-  │                         (Lenguaje natural + Loyverse POS)
-  │
-  ├── Llamada telefónica ► tacos-aragon-llamadas
-  │                         (Twilio + STT/TTS + Loyverse)
-  │
-  ├── Sitio web ──────────► tacos-aragon-wp  (WordPress)
-  │                         tacos-aragon-web (Flask / facturación)
-  │
-  ├── App móvil ──────────► tacos-aragon-app
-  │                         (vía tacos-aragon-api)
-  │
-  └── Descarga fiscal ────► tacos-aragon-fiscal
-                             (SAT · CFDI · Excel)
-
-Admin (operaciones)
-  │
-  ├── Agente monitor ─────┐
-  ├── Orquestador ────────┼──► mensajes_queue (SQLite)
-  └── Agente CFO ─────────┘         │
-                                     ▼
-                             telegram-dispatcher ──► Telegram (admin)
-                             (aprobar/rechazar con botones inline)
-```
-
-## Integraciones comunes
-
-- **Loyverse POS** — Registro automático de órdenes en el punto de venta
-- **Procesamiento NLP** — Comprensión de lenguaje natural para pedidos y transcripción de voz
-- **Agente inteligente** — Agente con tool use para la app móvil y monitoreo de calidad
-- **Facturama PAC** — Timbrado de facturas electrónicas CFDI 4.0
-- **SAT (México)** — Descarga masiva de CFDIs recibidos y emitidos
-- **Telegram Bot API** — Canal de operaciones del admin (independiente del WhatsApp de clientes)
-
-## Configuración
-
-Cada proyecto tiene su propio `ecosystem.config.example.js` o `.env.example` con las variables necesarias.
-Consulta el `README.md` de cada carpeta para instrucciones de instalación.
-
-> **Seguridad:** Ningún archivo `.env`, certificado, token ni dato personal está incluido en este repositorio.
 
 ---
 
-*Restaurante Tacos Aragón · Culiacán, Sinaloa · Horario: Mar–Dom 6pm–11:30pm*
+## 🔐 Variables de entorno comunes
+
+| Variable | Usado por | Descripción |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | telegram-dispatcher | Token del bot Telegram |
+| `TELEGRAM_ADMIN_CHAT_ID` | telegram-dispatcher | Chat ID privado del admin |
+| `TELEGRAM_GROUP_ID` | telegram-dispatcher | Grupo con topics para mirror |
+| `MENSAJES_DB_PATH` | dispatcher, pmo-agent | Ruta absoluta al SQLite compartido |
+| `LOYVERSE_API_KEY` | tacos-bot, tacos-api | API key de Loyverse POS |
+| `GEMINI_API_KEY` | tacos-bot, monitor | API key de Google Gemini |
+
+> **Seguridad:** Ningún `.env`, certificado, token ni dato personal está incluido en este repositorio.
+
+---
+
+## 📋 Sistema de Changelog
+
+Todos los agentes del ecosistema registran sus cambios en archivos JSONL centralizados en `C:/SesionBot/changelogs/`.
+
+### Estructura de un entry
+
+```jsonl
+{
+  "ts": "2026-03-25T14:30:00-07:00",
+  "agente": "pmo-agent",
+  "origen": "user",
+  "titulo": "Fix validación RFC en pedidos",
+  "desc": "Agregada regex de RFC en src/pedidos.js línea 87. Corrige crash cuando cliente omite guión.",
+  "archivos": ["src/pedidos.js"],
+  "tags": ["bug", "tacos-bot", "api"]
+}
+```
+
+### Tags canónicos
+
+| Tag | Significado |
+|---|---|
+| `bug` / `feature` | Tipo de cambio |
+| `config` / `prompt` | Configuración o prompt del agente |
+| `db` / `api` | Capa de datos o API REST |
+| `timeout` / `session` | Gestión de timeouts y sesiones Claude |
+| `xml` | Protocolo XML PMO ↔ dispatcher |
+| `changelog` / `mcp` | Infraestructura del ecosistema |
+| `tacos-bot` / `tacos-api` / `cfo-agent` | Proyecto afectado |
+| `relay` / `dispatcher` / `telegram` | Canal de mensajería |
+| `monitor` / `orquestador` / `pmo` | Agente que realizó el cambio |
+
+### Flujo PMO + changelog
+
+El PMO inyecta los últimos **15 cambios** del historial en el system prompt de cada ejecución de Claude, dándole contexto de qué se modificó recientemente antes de atender una instrucción nueva.
+
+---
+
+## 🌐 Integraciones externas
+
+| Servicio | Proyecto | Uso |
+|---|---|---|
+| **Loyverse POS** | tacos-bot, tacos-api | Registro automático de órdenes |
+| **Google Gemini** | tacos-bot, monitor, cfo | NLP, análisis de conversaciones, reportes |
+| **Telegram Bot API** | telegram-dispatcher | Canal admin de operaciones |
+| **SAT México** | cfo-agent | Descarga masiva CFDI emitidos/recibidos |
+| **Facturama PAC** | tacos-api, tacos-web | Timbrado CFDI 4.0 |
+| **Tailscale VPN** | tacos-api | API REST expuesta solo en red privada |
+| **Claude Code CLI** | pmo-agent | Ejecución de Claude con MCP y plan Max |
+
+---
+
+*Restaurante Tacos Aragón · Culiacán, Sinaloa · Mar–Dom 6pm–11:30pm*
